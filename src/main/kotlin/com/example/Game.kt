@@ -1,119 +1,132 @@
 package com.example
 
-import javafx.animation.AnimationTimer
+import javafx.animation.KeyFrame
+import javafx.animation.Timeline
 import javafx.application.Application
-import javafx.event.EventHandler
-import javafx.scene.Group
 import javafx.scene.Scene
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
-import javafx.scene.image.Image
-import javafx.scene.input.KeyCode
+import javafx.scene.input.MouseEvent
+import javafx.scene.layout.BorderPane
+import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
+import javafx.scene.control.Button
 import javafx.stage.Stage
+import javafx.util.Duration
 
 class Game : Application() {
+    private val cellSize = 10
+    private val gridWidth = 60
+    private val gridHeight = 40
+    private var grid = Array(gridWidth) { BooleanArray(gridHeight) }
+    private var running = false
+    private var timeline: Timeline? = null
+    private lateinit var canvas: Canvas // Store a reference to the canvas
 
-    companion object {
-        private const val WIDTH = 512
-        private const val HEIGHT = 512
+    override fun start(primaryStage: Stage) {
+        canvas = Canvas((gridWidth * cellSize).toDouble(), (gridHeight * cellSize).toDouble()) // Initialize canvas
+        val gc = canvas.graphicsContext2D
+
+        canvas.addEventHandler(MouseEvent.MOUSE_CLICKED) { event -> handleMouseClick(event, canvas) }
+
+        val startButton = Button("Start").apply { setOnAction { startSimulation() } }
+        val stopButton = Button("Stop").apply { setOnAction { stopSimulation() } }
+        val resetButton = Button("Reset").apply { setOnAction { resetGrid(canvas) } }
+
+        val controls = HBox(10.0, startButton, stopButton, resetButton)
+        val root = BorderPane().apply {
+            center = canvas
+            bottom = controls
+        }
+
+        primaryStage.apply {
+            title = "Game of Life - Kotlin"
+            scene = Scene(root)
+            show()
+        }
+
+        drawGrid(gc)
     }
 
-    private lateinit var mainScene: Scene
-    private lateinit var graphicsContext: GraphicsContext
+    private fun handleMouseClick(event: MouseEvent, canvas: Canvas) {
+        val x = (event.x / cellSize).toInt()
+        val y = (event.y / cellSize).toInt()
+        if (x in 0 until gridWidth && y in 0 until gridHeight) {
+            grid[x][y] = !grid[x][y]
+            drawGrid(canvas.graphicsContext2D)
+        }
+    }
 
-    private lateinit var space: Image
-    private lateinit var sun: Image
+    private fun startSimulation() {
+        if (running) return
+        running = true
+        timeline = Timeline(
+            KeyFrame(Duration.millis(200.0), { updateGrid() }) // ✅ Explicitly wrap lambda
+        ).apply {
+            cycleCount = Timeline.INDEFINITE
+            play()
+        }
+    }
 
-    private var sunX = WIDTH / 2
-    private var sunY = HEIGHT / 2
+    private fun stopSimulation() {
+        running = false
+        timeline?.stop()
+    }
 
-    private var lastFrameTime: Long = System.nanoTime()
+    private fun resetGrid(canvas: Canvas) {
+        stopSimulation()
+        grid = Array(gridWidth) { BooleanArray(gridHeight) }
+        drawGrid(canvas.graphicsContext2D)
+    }
 
-    // use a set so duplicates are not possible
-    private val currentlyActiveKeys = mutableSetOf<KeyCode>()
+    private fun updateGrid() {
+        val newGrid = Array(gridWidth) { BooleanArray(gridHeight) }
 
-    override fun start(mainStage: Stage) {
-        mainStage.title = "Event Handling"
-
-        val root = Group()
-        mainScene = Scene(root)
-        mainStage.scene = mainScene
-
-        val canvas = Canvas(WIDTH.toDouble(), HEIGHT.toDouble())
-        root.children.add(canvas)
-
-        prepareActionHandlers()
-
-        graphicsContext = canvas.graphicsContext2D
-
-        loadGraphics()
-
-        // Main loop
-        object : AnimationTimer() {
-            override fun handle(currentNanoTime: Long) {
-                tickAndRender(currentNanoTime)
+        for (x in 0 until gridWidth) {
+            for (y in 0 until gridHeight) {
+                val neighbors = countAliveNeighbors(x, y)
+                newGrid[x][y] = if (grid[x][y]) (neighbors == 2 || neighbors == 3) else (neighbors == 3)
             }
-        }.start()
-
-        mainStage.show()
-    }
-
-    private fun prepareActionHandlers() {
-        mainScene.onKeyPressed = EventHandler { event ->
-            currentlyActiveKeys.add(event.code)
         }
-        mainScene.onKeyReleased = EventHandler { event ->
-            currentlyActiveKeys.remove(event.code)
-        }
+
+        grid = newGrid
+        drawGrid(canvas.graphicsContext2D) // Use the stored canvas reference
     }
 
-    private fun loadGraphics() {
-        // prefixed with / to indicate that the files are
-        // in the root of the "resources" folder
-        space = Image(getResource("/space.png"))
-        sun = Image(getResource("/sun.png"))
-    }
-
-    private fun tickAndRender(currentNanoTime: Long) {
-        // the time elapsed since the last frame, in nanoseconds
-        // can be used for physics calculation, etc
-        val elapsedNanos = currentNanoTime - lastFrameTime
-        lastFrameTime = currentNanoTime
-
-        // clear canvas
-        graphicsContext.clearRect(0.0, 0.0, WIDTH.toDouble(), HEIGHT.toDouble())
-
-        // draw background
-        graphicsContext.drawImage(space, 0.0, 0.0)
-
-        // perform world updates
-        updateSunPosition()
-
-        // draw sun
-        graphicsContext.drawImage(sun, sunX.toDouble(), sunY.toDouble())
-
-        // display crude fps counter
-        val elapsedMs = elapsedNanos / 1_000_000
-        if (elapsedMs != 0L) {
-            graphicsContext.fill = Color.WHITE
-            graphicsContext.fillText("${1000 / elapsedMs} fps", 10.0, 10.0)
+    private fun countAliveNeighbors(x: Int, y: Int): Int {
+        return (-1..1).sumOf { dx ->
+            (-1..1).count { dy ->
+                if (dx == 0 && dy == 0) false
+                else {
+                    val nx = x + dx
+                    val ny = y + dy
+                    nx in 0 until gridWidth && ny in 0 until gridHeight && grid[nx][ny]
+                }
+            }
         }
     }
 
-    private fun updateSunPosition() {
-        if (currentlyActiveKeys.contains(KeyCode.LEFT)) {
-            sunX--
-        }
-        if (currentlyActiveKeys.contains(KeyCode.RIGHT)) {
-            sunX++
-        }
-        if (currentlyActiveKeys.contains(KeyCode.UP)) {
-            sunY--
-        }
-        if (currentlyActiveKeys.contains(KeyCode.DOWN)) {
-            sunY++
+    private fun drawGrid(gc: GraphicsContext) {
+        gc.clearRect(0.0, 0.0, (gridWidth * cellSize).toDouble(), (gridHeight * cellSize).toDouble())
+        for (x in 0 until gridWidth) {
+            for (y in 0 until gridHeight) {
+                if (grid[x][y]) {
+                    gc.fill = Color.BLACK
+                    gc.fillRect(
+                        (x * cellSize).toDouble(),
+                        (y * cellSize).toDouble(),
+                        cellSize.toDouble(),
+                        cellSize.toDouble()
+                    )
+                }
+                gc.stroke = Color.LIGHTGRAY
+                gc.strokeRect(
+                    (x * cellSize).toDouble(),
+                    (y * cellSize).toDouble(),
+                    cellSize.toDouble(),
+                    cellSize.toDouble()
+                )
+            }
         }
     }
-
 }
