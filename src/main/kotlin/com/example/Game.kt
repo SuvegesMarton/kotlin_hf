@@ -22,6 +22,7 @@ class Game : Application() {
     private var running = false
     private var timeline: Timeline? = null
     private lateinit var canvas: Canvas // Store a reference to the canvas
+    private lateinit var stopStartButton: Button
 
     override fun start(primaryStage: Stage) {
         canvas = Canvas((gridWidth * cellSize).toDouble(), (gridHeight * cellSize).toDouble()) // Initialize canvas
@@ -29,11 +30,11 @@ class Game : Application() {
 
         canvas.addEventHandler(MouseEvent.MOUSE_CLICKED) { event -> handleMouseClick(event, canvas) }
 
-        val startButton = Button("Start").apply { setOnAction { startSimulation() } }
-        val stopButton = Button("Stop").apply { setOnAction { stopSimulation() } }
+        stopStartButton = Button("Start").apply { setOnAction { startSimulation() } }
+        //val stopButton = Button("Stop").apply { setOnAction { stopSimulation() } }
         val resetButton = Button("Reset").apply { setOnAction { resetGrid(canvas) } }
 
-        val controls = HBox(10.0, startButton, stopButton, resetButton)
+        val controls = HBox(10.0, stopStartButton, resetButton)
         val root = BorderPane().apply {
             center = canvas
             bottom = controls
@@ -66,11 +67,17 @@ class Game : Application() {
             cycleCount = Timeline.INDEFINITE
             play()
         }
+        stopStartButton.setText("Stop")
+        stopStartButton.setOnAction { stopSimulation() }
+
     }
 
     private fun stopSimulation() {
         running = false
         timeline?.stop()
+
+        stopStartButton.setText("Continue")
+        stopStartButton.setOnAction { startSimulation() }
     }
 
     private fun resetGrid(canvas: Canvas) {
