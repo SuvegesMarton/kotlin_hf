@@ -1,0 +1,7 @@
+Választás: Game of Life
+
+funkciók: interaktív GUI, szimuláció elindítása, megállítása, 
+	cellák kézzel kitöltése, játéktér "radírozása", random kitöltés,
+	körbeérő grid (alul-felül, oldalakon "átfolyás").
+
+

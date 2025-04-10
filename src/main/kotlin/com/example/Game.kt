@@ -14,6 +14,8 @@ import javafx.scene.control.Button
 import javafx.stage.Stage
 import javafx.util.Duration
 
+import kotlin.random.Random
+
 class Game : Application() {
     private val cellSize = 10
     private val gridWidth = 60
@@ -31,10 +33,10 @@ class Game : Application() {
         canvas.addEventHandler(MouseEvent.MOUSE_CLICKED) { event -> handleMouseClick(event, canvas) }
 
         stopStartButton = Button("Start").apply { setOnAction { startSimulation() } }
-        //val stopButton = Button("Stop").apply { setOnAction { stopSimulation() } }
-        val resetButton = Button("Reset").apply { setOnAction { resetGrid(canvas) } }
+        val resetButton = Button("Reset").apply { setOnAction { resetGrid() } }
+        val randomizeGutton = Button("Randomize").apply {setOnAction {randomizeGrid(canvas)}}
 
-        val controls = HBox(10.0, stopStartButton, resetButton)
+        val controls = HBox(10.0, stopStartButton, resetButton, randomizeGutton)
         val root = BorderPane().apply {
             center = canvas
             bottom = controls
@@ -80,9 +82,19 @@ class Game : Application() {
         stopStartButton.setOnAction { startSimulation() }
     }
 
-    private fun resetGrid(canvas: Canvas) {
-        stopSimulation()
+    private fun resetGrid() {
+        if(running) stopSimulation()
         grid = Array(gridWidth) { BooleanArray(gridHeight) }
+        drawGrid(canvas.graphicsContext2D)
+    }
+
+    private fun randomizeGrid(canvas: Canvas) {
+        if(running) stopSimulation()
+        grid = Array(gridWidth) {
+            BooleanArray(gridHeight) {
+                Random.nextFloat() < 0.20f // ~30% chance to be living cell
+            }
+        }
         drawGrid(canvas.graphicsContext2D)
     }
 
