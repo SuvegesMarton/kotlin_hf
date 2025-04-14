@@ -117,8 +117,8 @@ class Game : Application() {
             (-1..1).count { dy ->
                 if (dx == 0 && dy == 0) false
                 else {
-                    val nx = x + dx
-                    val ny = y + dy
+                    val nx = (x + dx + gridWidth) % gridWidth
+                    val ny = (y + dy + gridHeight) % gridHeight
                     nx in 0 until gridWidth && ny in 0 until gridHeight && grid[nx][ny]
                 }
             }
