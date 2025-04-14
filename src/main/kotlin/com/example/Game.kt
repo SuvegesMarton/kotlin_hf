@@ -34,9 +34,9 @@ class Game : Application() {
 
         stopStartButton = Button("Start").apply { setOnAction { startSimulation() } }
         val resetButton = Button("Reset").apply { setOnAction { resetGrid() } }
-        val randomizeGutton = Button("Randomize").apply {setOnAction {randomizeGrid(canvas)}}
+        val randomizeButton = Button("Randomize").apply {setOnAction {randomizeGrid(canvas)}}
 
-        val controls = HBox(10.0, stopStartButton, resetButton, randomizeGutton)
+        val controls = HBox(10.0, stopStartButton, resetButton, randomizeButton)
         val root = BorderPane().apply {
             center = canvas
             bottom = controls
@@ -92,7 +92,7 @@ class Game : Application() {
         if(running) stopSimulation()
         grid = Array(gridWidth) {
             BooleanArray(gridHeight) {
-                Random.nextFloat() < 0.20f // ~30% chance to be living cell
+                Random.nextFloat() < 0.70f // ~15% chance to be living cell
             }
         }
         drawGrid(canvas.graphicsContext2D)
@@ -119,7 +119,7 @@ class Game : Application() {
                 else {
                     val nx = (x + dx + gridWidth) % gridWidth
                     val ny = (y + dy + gridHeight) % gridHeight
-                    nx in 0 until gridWidth && ny in 0 until gridHeight && grid[nx][ny]
+                    grid[nx][ny]
                 }
             }
         }
